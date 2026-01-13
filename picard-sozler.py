@@ -10,7 +10,7 @@
 PLUGIN_NAME = "Picard Sözler"
 PLUGIN_AUTHOR = "Deniz Engin <dev@dilbil.im>"
 PLUGIN_DESCRIPTION = "Sözler is a lyrics fetcher for Picard. It uses the public API provided by the lrclib.net project, which requires no registration or API keys! The API provides synced lyrics and unsynced ones as a fallback. We prioritize the syced ones. The lrclib project does not utilize MB IDs, so the results may not be as accurate. It is recommended to glimpse over your lyrics when tagging."
-PLUGIN_VERSION = "0.0.2"
+PLUGIN_VERSION = "0.0.3"
 PLUGIN_API_VERSIONS = ["2.1"]
 PLUGIN_LICENSE = "GPL-3.0-or-later"
 PLUGIN_LICENSE_URL = "https://www.gnu.org/licenses/gpl-3.0-standalone.html"
@@ -19,6 +19,7 @@ from functools import partial
 import json
 
 from picard.metadata import register_track_metadata_processor
+from picard.file import register_file_post_addition_to_track_processor
 from picard import log
 
 
@@ -56,7 +57,14 @@ def process_response(album, metadata, data, reply, error):
 		album._finalize_loading(None)
 
 
-def process_track(album, metadata, track, __):
+def process_track(track, file): #  album, metadata, track, __):
+	album = track.album
+	metadata = file.metadata
+
+	if metadata.get("lyrics"):
+		log_debug("lyrics already present; skipping fetch")
+		return
+
 	(mins, secs) = map(int, metadata["~length"].split(":"))
 	query = {
 		"artist_name": metadata["albumartist"] or metadata["artist"],
@@ -73,4 +81,4 @@ def process_track(album, metadata, track, __):
 	)
 	album._requests += 1
 
-register_track_metadata_processor(process_track)
+register_file_post_addition_to_track_processor(process_track)
